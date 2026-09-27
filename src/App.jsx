@@ -14,10 +14,13 @@ const ready = record => missingFields(record,fields).length===0 && (record.notes
 const archiveKey='qa-compass-reviewed-v1';
 function readArchive(){try{const data=JSON.parse(localStorage.getItem(archiveKey)||'[]');return Array.isArray(data)?data:[]}catch{return []}}
 const identity=row=>[row['Employee ID'],row['Call Date'],row['Call Event ID'],row['Quality Score in Percentage'],row['Quality Auditor Remarks']].join('|');
-export default function App(){
-  const [page,setPage]=useState('workspace');
-  const [roster,setRoster]=useState([]);
-  const [archive,setArchive]=useState(readArchive);
+export default function App({cloud=null}){
+  const [page,setPage]=useState(cloud?.profile.role==='viewer'?'analytics':'workspace');
+  const [localRoster,setRoster]=useState([]);
+  const [localArchive,setArchive]=useState(readArchive);
+  const [localAuditor,setLocalAuditor]=useState({id:'',name:''});
+  const roster=cloud?.roster||localRoster;
+  const archive=cloud?.archive||localArchive;
   const [notes,setNotes]=useState('');
   const [records,setRecords]=useState([]);
   const [selected,setSelected]=useState(0);
@@ -31,6 +34,8 @@ export default function App(){
     return (filter==='all'||(filter==='ready'?complete:!complete))&&(!query||`${record.sourceName} ${record.fields['Call Event ID']} ${record.fields['Employee ID']}`.toLowerCase().includes(query.toLowerCase()));
   });
   function process(){
+    if(!cloud&&(!localAuditor.id.trim()||!localAuditor.name.trim())){setMessage('Enter your auditor ID and name before processing notes. Local identity is self-reported.');return}
+    if(!roster.length){setMessage('The employee roster is empty. Ask the owner to seed Supabase or load a roster for local mode.');return}
     const parsed=parseNotes(notes,roster);
     setRecords(parsed);setSelected(0);setFilter('all');
     setMessage(parsed.length?`${parsed.length} audit record${parsed.length===1?'':'s'} extracted. Review the required fields before export.`:'No audit blocks found. Paste records with an agent name and a date on separate lines.');
@@ -52,18 +57,35 @@ export default function App(){
     }catch(e){setMessage(`Could not load roster: ${e.message}`)}
   }
   function saveArchive(next){try{localStorage.setItem(archiveKey,JSON.stringify(next));setArchive(next);return true}catch{setMessage('Browser storage is unavailable or full. No records were saved.');return false}}
-  function saveReviewed(){
+  async function saveReviewed(){
     const rows=records.filter(ready).map(r=>structuredClone(r.fields));
     if(!rows.length){setMessage('Review and complete at least one audit first.');return}
+    if(cloud){
+      try{await cloud.saveAudits(rows);setMessage(`Saved ${rows.length} reviewed audit${rows.length===1?'':'s'} to shared analytics as ${cloud.auditor.name}.`)}
+      catch(e){setMessage(`Could not sync audits: ${e.message}`)}
+      return;
+    }
     const next=new Map(archive.map(r=>[identity(r),r]));
-    rows.forEach(r=>next.set(identity(r),r));
+    rows.forEach(r=>next.set(identity(r),{...r,_auditorId:localAuditor.id.trim(),_auditorName:localAuditor.name.trim()}));
     if(saveArchive([...next.values()]))setMessage(`Saved ${rows.length} reviewed audit${rows.length===1?'':'s'} for analytics on this browser.`);
   }
+  async function importLocalArchive(){
+    if(!cloud?.auditor||!localArchive.length)return;
+    const rows=localArchive.map(row=>Object.fromEntries(fields.map(spec=>[spec.label,row[spec.label]??''])));
+    try{await cloud.saveAudits(rows);setMessage(`Imported ${rows.length} local audit${rows.length===1?'':'s'} under ${cloud.auditor.name}. The local copy remains until you clear browser storage.`)}
+    catch(e){setMessage(`Could not import local audits: ${e.message}`)}
+  }
+  async function removeSaved(row){
+    if(cloud){try{await cloud.removeAudit(row)}catch(e){setMessage(e.message)}}
+    else saveArchive(archive.filter(r=>r!==row));
+  }
   return <>
-    <header className="topbar"><div className="brand"><span className="mark" aria-hidden="true">▣</span><strong>QA Compass</strong><span className="brand-separator">—</span><span>Notes to records</span></div><nav aria-label="Pages"><button className={page==='workspace'?'active':''} onClick={()=>setPage('workspace')}>Audit workspace</button><button className={page==='analytics'?'active':''} onClick={()=>setPage('analytics')}>Analytics</button></nav><div className="privacy"><span className="lock">◆</span> Browser processing · No data sent</div></header>
+    <header className="topbar"><div className="brand"><span className="mark" aria-hidden="true">▣</span><strong>QA Compass</strong><span className="brand-separator">—</span><span>Notes to records</span></div><nav aria-label="Pages">{cloud?.profile.role!=='viewer'&&<button className={page==='workspace'?'active':''} onClick={()=>setPage('workspace')}>Audit workspace</button>}<button className={page==='analytics'?'active':''} onClick={()=>setPage('analytics')}>Analytics</button></nav><div className="privacy"><span className="lock">◆</span> {cloud?`Signed in · ${cloud.auditor?.name||'Viewer'}`:'Browser processing · Local mode'} {cloud&&<button className="signout" onClick={cloud.signOut}>Sign out</button>}</div></header>
     <main>
-      {page==='analytics'?<Analytics archive={archive} onRemove={row=>saveArchive(archive.filter(r=>r!==row))} onClear={()=>{if(window.confirm('Remove all saved analytics records from this browser?'))saveArchive([])}}/>:<>
-      <div className="roster-banner"><div><strong>Employee roster</strong><span>{roster.length?`${roster.length} agents loaded for this tab`:'Load agents.json to match names, IDs, supervisors, and LOBs.'}</span></div><label className="secondary roster-upload">Choose agents.json<input type="file" accept=".json,application/json" onChange={e=>loadRoster(e.target.files?.[0])}/></label></div>
+      {cloud?.auditor&&localArchive.length>0&&<div className="roster-banner"><div><strong>Previous local audits</strong><span>{localArchive.length} reviewed record{localArchive.length===1?'':'s'} are still saved in this browser.</span></div><button className="secondary" onClick={importLocalArchive}>Import to shared analytics as {cloud.auditor.name}</button></div>}
+      {page==='analytics'?<Analytics archive={archive} cloud={!!cloud} currentUserId={cloud?.user.id} onRemove={removeSaved} onClear={cloud?null:()=>{if(window.confirm('Remove all saved analytics records from this browser?'))saveArchive([])}}/>:<>
+      <div className="roster-banner"><div><strong>Auditor identity</strong>{cloud?<span>{cloud.auditor?.name} · {cloud.auditor?.id} · verified by sign-in</span>:<><label>ID<input value={localAuditor.id} onChange={e=>setLocalAuditor(x=>({...x,id:e.target.value}))} placeholder="qa001"/></label><label>Name<input value={localAuditor.name} onChange={e=>setLocalAuditor(x=>({...x,name:e.target.value}))} placeholder="Your name"/></label><span>Local mode: self-reported identity</span></>}</div></div>
+      <div className="roster-banner"><div><strong>Employee roster</strong><span>{cloud?`${roster.length} agents available to approved auditors`:roster.length?`${roster.length} agents loaded for this tab`:'Cloud sync is not configured yet. Load agents.json for local testing.'}</span></div>{!cloud&&<label className="secondary roster-upload">Choose agents.json<input type="file" accept=".json,application/json" onChange={e=>loadRoster(e.target.files?.[0])}/></label>}</div>
       <div className="workspace">
         <section className="panel paste-panel" aria-labelledby="paste-title">
           <div className="section-head"><div><h1 id="paste-title">1. Paste QA audit notes</h1><p>Paste one or more blocks from your notepad, then inspect each extracted audit.</p></div><button className="link" onClick={()=>{setNotes('');setRecords([]);setMessage('');}} type="button">Clear all</button></div>
@@ -86,7 +108,7 @@ export default function App(){
             <div className="form-fields">{fields.map(f=><FieldEditor key={f.internalName} spec={f} value={current.fields[f.label]} onChange={value=>update(f.label,value)}/>)}</div>
             <div className="form-field attachments"><div className="field-heading"><span>Attachments</span><small>Optional</small></div><p>Attachments are not included in the CSV workflow.</p></div>
           </div><aside className="evidence"><h3>Source notes</h3><pre>{current.source}</pre><h3>Extracted context</h3><dl><dt>Call time</dt><dd>{current.time||'—'}</dd><dt>Duration</dt><dd>{current.duration||'—'}</dd><dt>Other references</dt><dd>{current.references.join(' · ')||'—'}</dd></dl><p>Phone numbers and caller names remain in this review panel. They are not mapped to List fields because the supplied form has no matching column.</p></aside></div>
-        </>:<div className="inspector-empty">Paste your audit notes above to start. No account or network request is used for parsing.</div>}
+        </>:<div className="inspector-empty">Identify the auditor, then paste your audit notes above to start. Parsing stays in this tab until you save reviewed records.</div>}
       </section>
       </>}
       {message&&<div className="toast" role="status">{message}<button aria-label="Dismiss" onClick={()=>setMessage('')}>×</button></div>}

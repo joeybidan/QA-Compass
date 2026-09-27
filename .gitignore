@@ -1,5 +1,10 @@
 node_modules/
 dist/
 .env*
+!.env.example
+.netlify/
 *.private.json
 src/data/agents.json
+public/agents.json
+public/auditors.json
+*private*.sql
