@@ -1,0 +1,309 @@
+[
+  {
+    "label": "Employee ID",
+    "internalName": "Employee_x0020_ID",
+    "required": true,
+    "type": "Number",
+    "description": "Audited Agent ID",
+    "choices": []
+  },
+  {
+    "label": "Employee Name",
+    "internalName": "Employee_x0020_Name",
+    "required": true,
+    "type": "User",
+    "description": "Audited Agent Name",
+    "choices": []
+  },
+  {
+    "label": "Supervisor",
+    "internalName": "Supervisor",
+    "required": true,
+    "type": "User",
+    "description": "Supervisor Name of the Audited Agent ",
+    "choices": []
+  },
+  {
+    "label": "LOB",
+    "internalName": "LOB",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "After-Hours Support",
+      "B2B Care Advisor",
+      "D2C Care Advisor",
+      "Caregiver Support",
+      "Care Partner"
+    ]
+  },
+  {
+    "label": "Call Date",
+    "internalName": "Call_x0020_Date",
+    "required": true,
+    "type": "DateTime",
+    "description": "",
+    "choices": []
+  },
+  {
+    "label": "Call Event ID",
+    "internalName": "Call_x0020_Event_x0020_ID",
+    "required": true,
+    "type": "Number",
+    "description": "",
+    "choices": []
+  },
+  {
+    "label": "Audited Call AHT in Seconds",
+    "internalName": "Audited_x0020_Call_x0020_AHT_x00",
+    "required": false,
+    "type": "Number",
+    "description": "Seconds= Minutes x 60",
+    "choices": []
+  },
+  {
+    "label": "Caller Type",
+    "internalName": "Caller_x0020_Type",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "Member",
+      "Caregiver",
+      "Authorized Representative of the Member",
+      "Case Manager/Social Worker",
+      "Third Party"
+    ]
+  },
+  {
+    "label": "Contact Type",
+    "internalName": "Call_x0020_",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "Inbound Call",
+      "Outbound Call",
+      "Escalation Outbound Call"
+    ]
+  },
+  {
+    "label": "Zero-Tolerance Standard",
+    "internalName": "Zero_x002d_Tolerance_x0020_Stand",
+    "required": true,
+    "type": "Choice",
+    "description": "This section serves as the \"Safety Check\" of the audit, ensuring that essential compliance and high-stakes requirements are met.",
+    "choices": [
+      "N/A",
+      "Intentional Falsification of Documentation",
+      "Abusive, Threatening, or Aggressive Language",
+      "Discrimination or Harassment",
+      "Willful Non\u2011Compliance With Emergency or Safety Protocols",
+      "Unauthorized Commitments or Misrepresentation",
+      "Improper Release of Call (Call Dropping / Hanging Up)",
+      "Call abandoned during emergency, escalation, or safety risk",
+      "Failure to Escalate",
+      "Data Privacy & Confidential Information Breach",
+      "Identity Verification Bypass or Falsification",
+      "Invalid Transfer"
+    ]
+  },
+  {
+    "label": "Quality Score in Percentage",
+    "internalName": "Quality_x0020_Score_x0020_in_x00",
+    "required": true,
+    "type": "Number",
+    "description": "",
+    "choices": []
+  },
+  {
+    "label": "Scorecard Type",
+    "internalName": "Scorecard_x0020_Type",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "Afterhours | Non-Emergency 8.2024",
+      "Afterhours | Emergency 8.2024",
+      "Caregiver Support Call 10.2024",
+      "CG Open Shift Intvw | Care Partners | 8.2025",
+      "Post Op Transport | 8.2024",
+      "D2C Inside Sales 8.2024",
+      "D2C & B2B CA Poke CG- 8.2024",
+      "Identify & Recommend Caregiver - Fam 8.2024",
+      "D2C & B2B CA Interview Follow Up - Fam 8.2024",
+      "D2C & B2B CA Interview Follow Up - CG 8.2024",
+      "D2C & B2B CA Hire Follow Up -Family 8.2024",
+      "D2C & B2B CA Hire Follow Up - CG 8.2024",
+      "D2C & B2B CA 1st Shift - Fam 8.2024",
+      "D2C & B2B CA 1st Shift - CG 8.2024",
+      "D2C & B2B CA Retention - Fam 8.2024",
+      "D2C & B2B CA Retention - CG 8.2024"
+    ]
+  },
+  {
+    "label": "Quality Main Parameter",
+    "internalName": "Afterhours_x0020__x007c__x0020_N",
+    "required": true,
+    "type": "MultiChoice",
+    "description": "Select all missed Quality parameters",
+    "choices": [
+      "Verification",
+      "Phone Etiquette",
+      "Professionalism / Soft Skills",
+      "Process / Execution",
+      "Follow Up",
+      "Resolution / Accountability",
+      "Information Accuracy",
+      "Sales / BANT",
+      "Documentation",
+      "Retention",
+      "Hold/Transfer policy",
+      "Policies and procedures",
+      "N/A"
+    ]
+  },
+  {
+    "label": "Quality Sub-parameter",
+    "internalName": "Quality_x0020_Sub_x002d_paramete",
+    "required": true,
+    "type": "MultiChoice",
+    "description": "Select all missed Quality sub-parameters",
+    "choices": [
+      "Preparedness to take the call",
+      "Verification process followed",
+      "Complete and correct Call Opening spiel",
+      "Professional greeting",
+      "Professional and personable",
+      "Build rapport",
+      "Identify existing account or not",
+      "Identify referral source",
+      "Quick-lead created for no accounts",
+      "Ask for appropriate questions and relayed correct resolution",
+      "Correct information provided",
+      "Determine non-emergency type of call",
+      "Emergency information gathered",
+      "Ask if other party is notified",
+      "Ask if CG replacement is needed",
+      "If replacement needed, was expectation set and callback made",
+      "Save attempt made for clients cancelling shift",
+      "Emergency call process followed",
+      "Agent called appropriate party if needed",
+      "Complete and concise information shared",
+      "CG replacement attempt made",
+      "Validate for understanding",
+      "Next step task created",
+      "Next steps outreach expectation",
+      "Clear and accurate information relayed",
+      "Displayed assurance",
+      "Offered white glove experience",
+      "Clear and accurate benefit information relayed",
+      "Overcome objection",
+      "Qualified to an opportunity stage",
+      "Uncover timeline",
+      "Uncover authority",
+      "Uncover care needs",
+      "Uncover budget",
+      "Update the lead in retool",
+      "Update the job posting",
+      "Approved and blast job posting",
+      "Update the job status",
+      "Family summary updated",
+      "Caregiver summary updated",
+      "Correctly used log-a-call/relationship notes",
+      "Complete and accurate notes",
+      "Staff job summary updated",
+      "Good match verified",
+      "Family wants to interview expectation",
+      "Review caregiver match",
+      "Family wants to interview",
+      "Interview result",
+      "Family wants to hire and steps taken",
+      "Family do not want to hire and steps taken",
+      "Caregiver rating",
+      "Confirm interview happened",
+      "Confirm job is offered and accepted",
+      "Confirm hire details",
+      "Uncover how first shift went",
+      "Review payment works and expectation",
+      "Payment source on file reviewed",
+      "Review bank account on file",
+      "Review 1st timesheet",
+      "Uncover how things are going with CR and CM",
+      "Uncover feedback towards CG",
+      "Uncover care goals and needs",
+      "Uncover increase in care hours and reason",
+      "Uncover feedback towards CLX experience",
+      "Review outstanding account issue",
+      "Uncover how things are going with CG",
+      "Address caller by name",
+      "Active listening",
+      "Positive tone",
+      "Positive language",
+      "Hold verbiage",
+      "Hold policy",
+      "Dead air",
+      "Offering additional assistance",
+      "Choice 75",
+      "Information accuracy",
+      "Completeness",
+      "Actions taken",
+      "Complete closing spiel",
+      "N/A"
+    ]
+  },
+  {
+    "label": "Repeat Caller?",
+    "internalName": "RepeatCaller_x003f_",
+    "required": true,
+    "type": "Choice",
+    "description": "Based on feedback and notes documentation for the same issue",
+    "choices": [
+      "N/A",
+      "No",
+      "Yes"
+    ]
+  },
+  {
+    "label": "Sentiment Orientation",
+    "internalName": "Sentiment_x0020_Orientation",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "Positive Call Experience",
+      "Neutral",
+      "Negative",
+      "For Escalation and intervention needed"
+    ]
+  },
+  {
+    "label": "Supervisor Action Next Step",
+    "internalName": "Supervisor_x0020_Action_x0020_Ne",
+    "required": true,
+    "type": "Choice",
+    "description": "",
+    "choices": [
+      "Coaching",
+      "PCF/NTE Issuance",
+      "Commendation for good call handling | Kudos Call",
+      "N/A"
+    ]
+  },
+  {
+    "label": "Kudos Call Verbatim",
+    "internalName": "Kudos_x0020_Call_x0020_Verbatim",
+    "required": true,
+    "type": "Note",
+    "description": "",
+    "choices": []
+  },
+  {
+    "label": "Quality Auditor Remarks",
+    "internalName": "Quality_x0020_Auditor_x0020_Rema",
+    "required": true,
+    "type": "Note",
+    "description": "",
+    "choices": []
+  }
+]
