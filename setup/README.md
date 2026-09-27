@@ -21,12 +21,16 @@ Open the project's **SQL Editor** and run [`schema.sql`](schema.sql) once. It en
 On your own machine, from this repository directory, run the seed script with the two uploaded JSON files. Use a temporary shell environment for the **secret key**. Do not place the key in `.env`, `VITE_` variables, GitHub, or chat.
 
 ```bash
+read -rs -p 'Supabase secret key: ' QA_COMPASS_SECRET; echo
 SUPABASE_URL='https://mzopnroctqeftvankwrv.supabase.co' \
-SUPABASE_SECRET_KEY='YOUR_SECRET_KEY' \
+SUPABASE_SECRET_KEY="$QA_COMPASS_SECRET" \
 node setup/seed-reference-data.mjs /private/path/agents.json /private/path/auditors.json
+unset QA_COMPASS_SECRET
 ```
 
 Get the actual project URL and secret key from the project's **Settings → API Keys** page. The script uses the secret key only on your own computer. It upserts `qa_agents` and `qa_auditors`; rerun it when the roster changes. It does not publish these JSON files to GitHub or Netlify.
+
+On Windows PowerShell, use `$env:SUPABASE_URL='https://mzopnroctqeftvankwrv.supabase.co'`, then `$env:SUPABASE_SECRET_KEY=Read-Host 'Supabase secret key' -MaskInput`, run `node setup/seed-reference-data.mjs C:\private\agents.json C:\private\auditors.json`, and finish with `Remove-Item Env:SUPABASE_SECRET_KEY`.
 
 ## 4. Bind real logins to auditor IDs
 
