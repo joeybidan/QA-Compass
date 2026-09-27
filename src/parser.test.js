@@ -20,18 +20,18 @@ test('score typos, missing event, fallback markdown, and duration',()=>{
  assert.ok(r.notes.some(x=>x.includes('Interpreted')));
 });
 test('separate records, markdown categories, and safe CSV',()=>{
- const notes='Sampleton, CLX_Alex\n09/15/2026\n09:24:54 AM\n3:01\n10006773459\n100\n\nExample, CLX_Bailey\n09/14/2026\n10:31:28 AM\n7:58\n10006764708\nMarkdown: excessive hold\nMarkdown: did not deliver closing spiel\n89.4';
+ const notes='Sampleton, CLX_Alex\n09/15/2026\n09:24:54 AM\n3:01\n10000000001\n100\n\nExample, CLX_Bailey\n09/14/2026\n10:31:28 AM\n7:58\n10000000002\nMarkdown: excessive hold\nMarkdown: did not deliver closing spiel\n89.4';
  const r=parseNotes(notes,agents);
  assert.equal(r.length,2);
  assert.equal(r[0].fields['Quality Score in Percentage'],'100');
  assert.equal(r[1].fields['Quality Score in Percentage'],'89.4');
  assert.deepEqual(r[1].fields['Quality Main Parameter'],['Hold/Transfer policy','Phone Etiquette']);
  assert.equal(r[1].fields['Caller Type'],'Caregiver');
- assert.ok(csvFor(r,fields).includes('10006773459'));
+ assert.ok(csvFor(r,fields).includes('10000000001'));
  assert.equal(matchAgent('Alex Sampleton',agents)?.eid,'101');
 });
 test('sentiment, scorecard, and severe issue',()=>{
- const r=parseNotes('Testperson, CLX_Casey\n09/17/2026\n11:44:08 AM\n9:10\n10006792822\nCaregiver caller\nMarkdown: missed the closing spiel and did not update CG summary\nEscalation needed\n90',agents)[0];
+ const r=parseNotes('Testperson, CLX_Casey\n09/17/2026\n11:44:08 AM\n9:10\n10000000003\nCaregiver caller\nMarkdown: missed the closing spiel and did not update CG summary\nEscalation needed\n90',agents)[0];
  assert.equal(r.fields['Sentiment Orientation'],'For Escalation and intervention needed');
  assert.equal(r.fields['Scorecard Type'],'D2C & B2B CA Poke CG- 8.2024');
  assert.ok(r.fields['Quality Sub-parameter'].includes('Caregiver summary updated'));

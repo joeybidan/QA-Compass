@@ -51,7 +51,8 @@ export function parseNotes(input,agents=[]) {
     const score=scoreMatch && +scoreMatch[1]<=100?scoreMatch[1]:'';
     const agent=matchAgent(block[0],agents);
     const markdowns=block.filter(x=>/^markdown\s*:/i.test(x)).map(x=>x.replace(/^markdown\s*:\s*/i,''));
-    const references=block.slice(Math.max(0,eventIndex+1),scoreIndex>=0?scoreIndex:undefined).filter(x=>!/^markdown\s*:/i.test(x));
+    const contextStart=eventIndex>=0?eventIndex+1:Math.max(dateIndex+1,block.findIndex(x=>x===duration)+1);
+    const references=block.slice(contextStart,scoreIndex>=0?scoreIndex:undefined).filter(x=>!/^markdown\s*:/i.test(x)&&!timePattern.test(x)&&!durationPattern.test(x));
     const d=duration.match(durationPattern);
     const seconds=d?(d[3]?+d[1]*3600 + +d[2]*60 + +d[3]:+d[1]*60 + +d[2]):'';
     const record={key:`${index}-${eventId}`,source:block.join('\n'),sourceName:block[0],time,duration,references,
