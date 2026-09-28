@@ -29,4 +29,6 @@ After signing in, choose **Manage team** in the top navigation. Both existing au
 
 Changes are saved to Supabase immediately and appear for both auditors. Only accounts approved in the database can read the roster and shared analytics. Each auditor can edit or remove only audits they saved.
 
+New LOB names appear in the review form. If a new LOB has different scorecard rules, choose its scorecard during review; the parser only knows the original teams' automatic scorecard rules. A genuinely new LOB must also be added to the Microsoft List's choices before importing CSV.
+
 The SQL scripts in `supabase/` document the installed tables and policies. Do not run them again for routine additions. Direct Microsoft List submission is a separate integration; CSV remains the staging export.

@@ -18,15 +18,21 @@ export default function CloudGate(){
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [roster,setRoster]=useState([]);
+  const [lobs,setLobs]=useState([]);
   const [archive,setArchive]=useState([]);
   const [loading,setLoading]=useState(!!supabase);
   const [error,setError]=useState('');
   const [email,setEmail]=useState('');
   const [sent,setSent]=useState(false);
   async function refreshRoster(){
-    const {data,error}=await supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name');
-    if(error)throw error;
-    setRoster((data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));
+    const [agents,lines]=await Promise.all([
+      supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name'),
+      supabase.from('qa_lobs').select('name').eq('active',true).order('name')
+    ]);
+    if(agents.error)throw agents.error;
+    if(lines.error)throw lines.error;
+    setRoster((agents.data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));
+    setLobs((lines.data||[]).map(x=>x.name));
   }
   useEffect(()=>{
     if(!supabase)return;
@@ -36,18 +42,21 @@ export default function CloudGate(){
     return ()=>{live=false;subscription.unsubscribe()};
   },[]);
   useEffect(()=>{
-    if(!supabase||!user){setProfile(null);setRoster([]);setArchive([]);return}
+    if(!supabase||!user){setProfile(null);setRoster([]);setLobs([]);setArchive([]);return}
     let live=true;
     setLoading(true);setError('');
     (async()=>{
       const {data:member,error:membershipError}=await supabase.from('qa_members').select('auditor_id,role,active,can_manage,qa_auditors(id,name)').eq('auth_user_id',user.id).maybeSingle();
       if(membershipError)throw membershipError;
       if(!member?.active)throw new Error('This email is not yet approved for QA Compass. Ask an auditor to add it on the Manage page.');
-      const [agents,audits]=await Promise.all([
-        supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name'),fetchAllAudits()
+      const [agents,lines,audits]=await Promise.all([
+        supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name'),
+        supabase.from('qa_lobs').select('name').eq('active',true).order('name'),
+        fetchAllAudits()
       ]);
       if(agents.error)throw agents.error;
-      if(live){setProfile(member);setRoster((agents.data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));setArchive(audits)}
+      if(lines.error)throw lines.error;
+      if(live){setProfile(member);setRoster((agents.data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));setLobs((lines.data||[]).map(x=>x.name));setArchive(audits)}
     })().catch(e=>{if(live)setError(e.message)}).finally(()=>{if(live)setLoading(false)});
     return ()=>{live=false};
   },[user?.id]);
@@ -75,5 +84,5 @@ export default function CloudGate(){
   if(!user)return <main className="access-panel"><h1>QA Compass</h1><h2>Auditor sign-in</h2><p>Enter your approved Cognizant email. Open the sign-in link sent to that inbox once; this browser will remember you. No password or code to type.</p><form onSubmit={sendLink}><label>Cognizant email<input type="email" required value={email} onChange={e=>{setEmail(e.target.value);setSent(false)}} placeholder="name@cognizant.com"/></label><button className="primary">Send sign-in link</button></form>{sent&&<p>Check your Cognizant inbox for the sign-in link.</p>}{error&&<p className="warning">{error}</p>}</main>;
   if(!profile)return <main className="access-panel"><h1>QA Compass</h1><p>{error||'Your account is not linked to an auditor profile yet.'}</p><button className="secondary" onClick={()=>supabase.auth.signOut()}>Sign out</button></main>;
   const auditor=profile.qa_auditors;
-  return <App cloud={{user,profile,auditor:auditor&&{id:profile.auditor_id,name:auditor.name},roster,archive,saveAudits,removeAudit,refreshRoster,signOut:()=>supabase.auth.signOut()}}/>;
+  return <App cloud={{user,profile,auditor:auditor&&{id:profile.auditor_id,name:auditor.name},roster,lobs,archive,saveAudits,removeAudit,refreshRoster,signOut:()=>supabase.auth.signOut()}}/>;
 }

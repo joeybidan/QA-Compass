@@ -15,6 +15,7 @@ const ready = record => missingFields(record,fields).length===0 && (record.notes
 const archiveKey='qa-compass-reviewed-v1';
 function readArchive(){try{const data=JSON.parse(localStorage.getItem(archiveKey)||'[]');return Array.isArray(data)?data:[]}catch{return []}}
 const identity=row=>[row['Employee ID'],row['Call Date'],row['Call Event ID'],row['Quality Score in Percentage'],row['Quality Auditor Remarks']].join('|');
+const displayLob=name=>({'After Hours Support':'After-Hours Support','CG Support':'Caregiver Support'})[name]||name;
 export default function App({cloud=null}){
   const [page,setPage]=useState(cloud?.profile.role==='viewer'?'analytics':'workspace');
   const [localRoster,setRoster]=useState([]);
@@ -106,7 +107,7 @@ export default function App({cloud=null}){
           <div className="review-callout"><strong>{missingFields(current,fields).length} required fields still blank</strong><span>{missingFields(current,fields).join(' · ')||'All required fields have values. Confirm accuracy before export.'}</span>{current.notes.map((n,i)=><span className="warning" key={i}>{n}</span>)}{current.notes.length>0&&<label className="acknowledge"><input type="checkbox" checked={current.reviewed} onChange={e=>acknowledge(e.target.checked)}/> I checked the flagged source details and corrected the fields as needed.</label>}</div>
           <div className="inspector-layout"><div className="form-preview">
             <div className="form-preview-header"><h3>2026 Sharecare Quality Compass</h3><p>The Sharecare Quality Compass Tracker is a strategic quality management tool designed to align individual agent performance with organizational excellence.</p></div>
-            <div className="form-fields">{fields.map(f=><FieldEditor key={f.internalName} spec={f} value={current.fields[f.label]} onChange={value=>update(f.label,value)}/>)}</div>
+            <div className="form-fields">{fields.map(f=><FieldEditor key={f.internalName} spec={f.label==='LOB'&&cloud?{...f,choices:[...new Set([...f.choices,...(cloud.lobs||[]).map(displayLob)])]}:f} value={current.fields[f.label]} onChange={value=>update(f.label,value)}/>)}</div>
             <div className="form-field attachments"><div className="field-heading"><span>Attachments</span><small>Optional</small></div><p>Attachments are not included in the CSV workflow.</p></div>
           </div><aside className="evidence"><h3>Source notes</h3><pre>{current.source}</pre><h3>Extracted context</h3><dl><dt>Call time</dt><dd>{current.time||'—'}</dd><dt>Duration</dt><dd>{current.duration||'—'}</dd><dt>Other references</dt><dd>{current.references.join(' · ')||'—'}</dd></dl><p>Phone numbers and caller names remain in this review panel. They are not mapped to List fields because the supplied form has no matching column.</p></aside></div>
         </>:<div className="inspector-empty">Identify the auditor, then paste your audit notes above to start. Parsing stays in this tab until you save reviewed records.</div>}

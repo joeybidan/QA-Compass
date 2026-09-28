@@ -70,6 +70,7 @@ export default function Manage({cloud}){
       const {error}=await supabase.from(table).insert({name});
       if(error)throw error;
       setValue('');
+      if(table==='qa_lobs')await cloud.refreshRoster();
     },`${label} “${name}” is now available in the agent form.`);
   }
   return <section className="manage">
