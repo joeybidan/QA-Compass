@@ -14,6 +14,7 @@ export default function Manage({cloud}){
   const [supervisor,setSupervisor]=useState('');
   const [lob,setLob]=useState('');
   const [busy,setBusy]=useState(false);
+  const [passwordReady,setPasswordReady]=useState(false);
   const [message,setMessage]=useState('');
   const [error,setError]=useState('');
   async function reload(){
@@ -73,10 +74,20 @@ export default function Manage({cloud}){
       if(table==='qa_lobs')await cloud.refreshRoster();
     },`${label} “${name}” is now available in the agent form.`);
   }
+  function changeLoginMode(){
+    const next=cloud.loginMode==='email'?'password':'email';
+    run(()=>cloud.updateLoginMode(next),next==='password'?'Password mode is enabled. Sign in with the password accounts configured in Supabase.':'Email-only entry is enabled again.');
+  }
   return <section className="manage">
     <div className="manage-heading"><h1>Manage team directory</h1><p>Changes here are saved to Supabase and shared with both auditors. Add supervisors and LOBs first, then assign them to agents.</p></div>
     {error&&<p className="manage-alert" role="alert">{error}</p>}
     {message&&<p className="manage-success" role="status">{message}</p>}
+    <section className="panel manage-card manage-login-settings">
+      <h2>Sign-in mode</h2>
+      <p>Current mode: <strong>{cloud.loginMode==='email'?'Cognizant email entry':'Email and password'}</strong>. Email entry is self-reported. Use password mode later when every auditor has a password account in Supabase.</p>
+      {cloud.loginMode==='email'&&<label className="manage-confirm"><input type="checkbox" checked={passwordReady} onChange={e=>setPasswordReady(e.target.checked)}/> I have created password accounts for every auditor and am ready to change the sign-in screen.</label>}
+      <button type="button" className="secondary" disabled={busy||(cloud.loginMode==='email'&&!passwordReady)} onClick={changeLoginMode}>{cloud.loginMode==='email'?'Switch to password mode':'Switch to email entry'}</button>
+    </section>
     <div className="manage-grid">
       <section className="panel manage-card">
         <h2>Add an auditor</h2><p>Give the new QA an ID and Cognizant email. They will use an email link on their first sign-in; no password is set here.</p>

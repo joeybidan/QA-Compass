@@ -1,34 +1,24 @@
 # QA Compass sign-in and team setup
 
-QA Compass uses the Supabase project `mzopnroctqeftvankwrv`. Its shared directory currently has 44 agents, two supervisors, five LOBs, and these approved auditors:
+QA Compass uses the Supabase project `mzopnroctqeftvankwrv`. The shared directory has 44 agents, two supervisors, five LOBs, and two approved QA emails:
 
-| QA ID | Name | Cognizant email |
+| QA ID | Name | Email |
 | --- | --- | --- |
 | qa001 | Guitguiten, Estivenson | estivenson.guitguiten@cognizant.com |
 | qa002 | Bidan Jr., Joey | joeyjr.bidan@cognizant.com |
 
-These IDs come from `auditors.json`; auditors never type them into the website. The roster is loaded from Supabase; nobody needs to upload `agents.json`.
+## Email entry for tonight's demo
 
-## First sign-in
+1. In Supabase, open **Authentication → Sign In / Providers → Anonymous Sign-Ins** and turn it **On**, then save. This is one project setting; it does not send an email.
+2. Open [QA Compass](https://qacompass.netlify.app), type your approved Cognizant address, then click **Open QA Compass**.
+3. Supabase remembers this browser session. The next visit normally goes straight to the workspace. Clearing browser data or signing out creates a new session.
 
-1. Open [QA Compass](https://qacompass.netlify.app).
-2. Enter **your own** Cognizant email and click **Send sign-in link**.
-3. Open the link sent to that inbox. The site remembers the sign-in on that browser, so the email step is not repeated on each visit.
+No message is sent to Cognizant. The typed address is self-reported; it is not proof that the visitor owns the inbox. **The production Netlify URL and the repository are public. Anyone who knows an approved email can claim that identity while email mode is on and Anonymous Sign-Ins are enabled.** Treat this as a trusted-team demo setting, and do not paste sensitive call information until a verified sign-in method is enabled.
 
-This is passwordless, with no code to type. A plain email text box by itself cannot prove who owns the address; the link verifies the inbox. The database grants access only to approved email addresses. The site's separate Netlify team sign-in may still appear before QA Compass; both auditors need access there.
+## Manage team
 
-The Supabase **Authentication → URL Configuration → Site URL** is already `https://qacompass.netlify.app/` in the supplied screenshot. If an email link opens the wrong destination, add `https://qacompass.netlify.app/**` under **Redirect URLs**. If the site reports that new sign-ups are disabled, enable email sign-ups in **Authentication → Sign In / Providers → Email** for the first sign-in.
+Both initial QAs can open **Manage team** to add QAs (ID, name, Cognizant email), supervisors, LOBs, and agents. Changes are saved to Supabase; agents do not require a JSON upload. Newly approved QA emails can use the same entry screen. New QAs do not get Manage team access by default.
 
-## Add people and roster entries
+The **Switch to password mode** button is on Manage team. Before switching, create confirmed Supabase Auth password accounts for every auditor in **Authentication → Users** and check the confirmation box in the app. Password mode blocks anonymous browser sessions at the database, so switching before those accounts exist will lock out the team. A project owner can restore email mode in SQL Editor with `update public.qa_auth_settings set mode='email' where id=1;`. To return to email mode from a password account, use the same Manage team button.
 
-After signing in, choose **Manage team** in the top navigation. Both existing auditors have this permission.
-
-- **Add an auditor:** Enter the next QA ID, their name, and their Cognizant email. The new auditor then uses the same email sign-in link. New auditors can audit but do not get the Manage team permission by default.
-- **Add a supervisor or LOB:** Enter its name in the matching section and click Add.
-- **Add an agent:** Enter employee ID and name, and choose the supervisor and LOB. Existing agents can be edited, archived, or restored from the roster table.
-
-Changes are saved to Supabase immediately and appear for both auditors. Only accounts approved in the database can read the roster and shared analytics. Each auditor can edit or remove only audits they saved.
-
-New LOB names appear in the review form. If a new LOB has different scorecard rules, choose its scorecard during review; the parser only knows the original teams' automatic scorecard rules. A genuinely new LOB must also be added to the Microsoft List's choices before importing CSV.
-
-The SQL scripts in `supabase/` document the installed tables and policies. Do not run them again for routine additions. Direct Microsoft List submission is a separate integration; CSV remains the staging export.
+A new LOB appears in the app's review form. If it needs different scorecard rules, choose its scorecard during review; the parser only knows the original teams' automatic rules. Add a genuinely new LOB to the Microsoft List choices before importing CSV. Direct Microsoft List submission remains separate.

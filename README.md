@@ -4,7 +4,7 @@ A Vite + React QA note parser with editable Microsoft List fields, CSV staging e
 
 ## Use
 
-An approved auditor enters their Cognizant email and opens a sign-in link in that inbox on first use. The browser remembers the session. No password or typed OTP is needed. The app derives the auditor ID and name from the protected membership table, loads the global employee roster, and lets the auditor paste and review notes. Saving complete audits sends their reviewed List fields to shared analytics. The initial two auditors can open **Manage team** to add auditors, agents, supervisors, and LOBs without code changes. An invited `viewer` may see analytics without editing audits. Notes stay in the browser until explicitly saved; only reviewed fields are synced.
+During email-entry mode, an approved auditor types their Cognizant address without receiving an email, password, or OTP. Supabase remembers the browser session. This is a self-reported identity for a trusted-team demo: anyone who knows an approved email can claim it. The app loads the global roster and lets the auditor paste and review notes. Saving complete audits sends their reviewed List fields to shared analytics. The initial two auditors can open **Manage team** to add auditors, agents, supervisors, and LOBs without code changes, or switch to password mode later. Notes stay in the browser until explicitly saved; only reviewed fields are synced.
 
 See [supabase/README.md](supabase/README.md) for the database scripts and [setup/README.md](setup/README.md) for sign-in and verification. The deployed site requires Supabase. No roster or auditor directory JSON is committed to this public repository.
 
