@@ -1,6 +1,6 @@
 # Connect QA Compass to Supabase
 
-This setup is for the **mzopnroctqeftvankwrv** project. The tables and private roster have been installed: 44 agents and the two auditors below. The Netlify build has the Supabase URL and publishable key. Keep Netlify team protection on while connecting the two sign-ins.
+This setup is for the **mzopnroctqeftvankwrv** project. The tables and private roster have been installed: 44 agents and the two auditors below. The site build includes the Supabase URL and browser-safe publishable key. Keep Netlify team protection on while connecting the two sign-ins.
 
 ## Who may see the shared analytics?
 
