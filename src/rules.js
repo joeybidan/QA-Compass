@@ -54,6 +54,7 @@ export function applyAuditRules(record,markdowns) {
   f['Caller Type']=namedCaller?(namedCaller[1].toLowerCase()==='member'?'Member':'Caregiver'):memberCalled&&!caregiverCalled?'Member':caregiverCalled&&!memberCalled?'Caregiver':member?'Member':'Caregiver';
   if(f.LOB) f['Contact Type']=/^(Caregiver Support|After-Hours Support)$/.test(f.LOB)?'Inbound Call':'Outbound Call';
   f['Scorecard Type']=scorecardFor(f.LOB,member,src);
+  if(markdowns.some(md=>/\bBGO\b/i.test(md))) f['Scorecard Type']='Caregiver Support Call 10.2024';
   const severe=zeroRules.filter(([pattern])=>pattern.test(src));
   f['Zero-Tolerance Standard']=severe.length===1?severe[0][1]:severe.length?'':'N/A';
   if(severe.length) record.notes.push('Potential zero-tolerance issue: confirm the exact standard against the call before submitting.');
@@ -85,6 +86,10 @@ export function applyAuditRules(record,markdowns) {
   } else {
     f['Quality Auditor Remarks']=markdowns.join('\n');
     for(const md of markdowns){
+      if(/\bBGO\b/i.test(md)){
+        add(record,'Resolution / Accountability','Completeness');
+        continue;
+      }
       const matched=qualityRules.filter(([pattern])=>pattern.test(md));
       for(const [,main,sub] of matched) add(record,main,sub);
       if(!matched.length) record.notes.push(`No confirmed parameter mapping for markdown: “${md}”`);

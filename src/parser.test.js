@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseNotes,missingFields,csvFor,matchAgent} from './parser.js';
+import {markdownLabels,rankAgents} from './analyticsData.js';
 import fields from './data/fields.json' with {type:'json'};
 const agents=[
   {agentName:'Sampleton, Alex',eid:'101',supervisor:'Lead One',lob:'CG Support'},
@@ -37,4 +38,23 @@ test('sentiment, scorecard, and severe issue',()=>{
  assert.ok(r.fields['Quality Sub-parameter'].includes('Caregiver summary updated'));
  const severe=parseNotes('Example, CLX_Bailey\n09/14/2026\n10:31:28 AM\n7:58\nMarkdown: invalid transfer\n90',agents)[0];
  assert.equal(severe.fields['Zero-Tolerance Standard'],'Invalid Transfer');
+});
+test('BGO markdown uses Caregiver Support completeness choices',()=>{
+ const r=parseNotes('Sampleton, CLX_Alex\n09/21/2026\n10:39:18 AM\n9:15\n10006808857\nMarkdown: the agent was not able to advise about the expired BGO and ask permission for renewal\n80s',agents)[0];
+ assert.equal(r.fields['Scorecard Type'],'Caregiver Support Call 10.2024');
+ assert.deepEqual(r.fields['Quality Main Parameter'],['Resolution / Accountability']);
+ assert.deepEqual(r.fields['Quality Sub-parameter'],['Completeness']);
+ assert.equal(missingFields(r,fields).length,0);
+ assert.ok(!r.notes.some(x=>x.includes('No confirmed parameter mapping')));
+});
+test('bottom and below-100 rankings retain each agent’s markdowns',()=>{
+ const rows=[
+  {'Employee ID':'1','Employee Name':'A','LOB':'CG Support','Quality Score in Percentage':'100','Quality Sub-parameter':['N/A']},
+  {'Employee ID':'1','Employee Name':'A','LOB':'CG Support','Quality Score in Percentage':'80','Quality Sub-parameter':['Completeness']},
+  {'Employee ID':'2','Employee Name':'B','LOB':'D2C','Quality Score in Percentage':'95','Quality Sub-parameter':['Hold policy']},
+  {'Employee ID':'2','Employee Name':'B','LOB':'D2C','Quality Score in Percentage':'90','Quality Sub-parameter':['Complete closing spiel']}
+ ];
+ assert.deepEqual(rankAgents(rows,{ascending:true}).map(x=>x.id),['1','2']);
+ assert.deepEqual(rankAgents(rows,{ascending:true,belowOnly:true}).map(x=>x.id),['1','2']);
+ assert.deepEqual(markdownLabels(rankAgents(rows,{ascending:true})[1].audits),['Hold policy','Complete closing spiel']);
 });

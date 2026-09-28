@@ -11,6 +11,9 @@ export default function Manage({cloud}){
   const [data,setData]=useState({auditors:[],emails:[],agents:[],supervisors:[],lobs:[]});
   const [qa,setQa]=useState({id:'',name:'',email:''});
   const [agent,setAgent]=useState(emptyAgent);
+  const [editing,setEditing]=useState(null);
+  const [deleting,setDeleting]=useState(null);
+  const [lastDeleted,setLastDeleted]=useState(null);
   const [supervisor,setSupervisor]=useState('');
   const [lob,setLob]=useState('');
   const [busy,setBusy]=useState(false);
@@ -33,7 +36,7 @@ export default function Manage({cloud}){
   }
   useEffect(()=>{reload().catch(e=>setError(e.message))},[]);
   async function run(action,success){
-    setBusy(true);setError('');setMessage('');
+    setBusy(true);setError('');setMessage('');setLastDeleted(null);
     try{await action();await reload();setMessage(success)}
     catch(e){setError(e.message)}
     finally{setBusy(false)}
@@ -45,7 +48,7 @@ export default function Manage({cloud}){
       const {error}=await supabase.rpc('add_qa_auditor',{p_id:entry.id,p_name:entry.name,p_email:entry.email});
       if(error)throw error;
       setQa({id:'',name:'',email:''});
-    },`${entry.name} is approved. They can sign in with ${entry.email} using an email link.`);
+    },`${entry.name} is approved. They can enter with ${entry.email}.`);
   }
   function saveAgent(event){
     event.preventDefault();
@@ -57,12 +60,34 @@ export default function Manage({cloud}){
       await cloud.refreshRoster();
     },`${entry.agent_name} is saved in the global employee roster.`);
   }
-  function toggleAgent(row){
+  function saveEdit(event){
+    event.preventDefault();
+    const original=editing.originalEid;
+    const entry={eid:editing.eid.trim(),agent_name:editing.agent_name.trim(),supervisor:editing.supervisor,lob:editing.lob};
     run(async()=>{
-      const {error}=await supabase.from('qa_agents').update({active:!row.active}).eq('eid',row.eid);
+      const {error}=await supabase.from('qa_agents').update(entry).eq('eid',original);
       if(error)throw error;
       await cloud.refreshRoster();
-    },`${row.agent_name} is now ${row.active?'archived':'active'}.`);
+      setEditing(null);
+    },`${entry.agent_name} was updated.`);
+  }
+  function deleteAgent(){
+    const row=deleting;
+    run(async()=>{
+      const {error}=await supabase.from('qa_agents').update({active:false}).eq('eid',row.eid);
+      if(error)throw error;
+      await cloud.refreshRoster();
+      setDeleting(null);
+      setLastDeleted(row.eid);
+    },`${row.agent_name} was removed from the active roster. You can undo this.`);
+  }
+  function undoAgent(row){
+    run(async()=>{
+      const {error}=await supabase.from('qa_agents').update({active:true}).eq('eid',row.eid);
+      if(error)throw error;
+      await cloud.refreshRoster();
+      if(lastDeleted===row.eid)setLastDeleted(null);
+    },`${row.agent_name} is back in the active roster.`);
   }
   function addCategory(event,table,value,setValue,label){
     event.preventDefault();
@@ -81,7 +106,7 @@ export default function Manage({cloud}){
   return <section className="manage">
     <div className="manage-heading"><h1>Manage team directory</h1><p>Changes here are saved to Supabase and shared with both auditors. Add supervisors and LOBs first, then assign them to agents.</p></div>
     {error&&<p className="manage-alert" role="alert">{error}</p>}
-    {message&&<p className="manage-success" role="status">{message}</p>}
+    {message&&<p className="manage-success" role="status">{message}{lastDeleted&&<button type="button" className="link" disabled={busy} onClick={()=>{const row=data.agents.find(a=>a.eid===lastDeleted);if(row)undoAgent(row)}}>Undo</button>}</p>}
     <section className="panel manage-card manage-login-settings">
       <h2>Sign-in mode</h2>
       <p>Current mode: <strong>{cloud.loginMode==='email'?'Cognizant email entry':'Email and password'}</strong>. Email entry is self-reported. Use password mode later when every auditor has a password account in Supabase.</p>
@@ -90,7 +115,7 @@ export default function Manage({cloud}){
     </section>
     <div className="manage-grid">
       <section className="panel manage-card">
-        <h2>Add an auditor</h2><p>Give the new QA an ID and Cognizant email. They will use an email link on their first sign-in; no password is set here.</p>
+        <h2>Add an auditor</h2><p>Give the new QA an ID and Cognizant email. In email-entry mode, no message or password is needed.</p>
         <form onSubmit={addQa} className="manage-form">
           <label>QA ID<input required pattern="qa[0-9]{3,}" value={qa.id} onChange={e=>setQa({...qa,id:e.target.value})} placeholder="qa003"/></label>
           <label>Full name<input required value={qa.name} onChange={e=>setQa({...qa,name:e.target.value})} placeholder="Surname, First name"/></label>
@@ -102,7 +127,7 @@ export default function Manage({cloud}){
         </div>
       </section>
       <section className="panel manage-card">
-        <h2>Add or update an agent</h2><p>The employee ID, name, supervisor, and LOB will be used when parsing notes. Choose a row below to edit it.</p>
+        <h2>Add an agent</h2><p>The employee ID, name, supervisor, and LOB will be used when parsing notes. Use Edit in the roster to change an existing agent.</p>
         <form onSubmit={saveAgent} className="manage-form">
           <label>Employee ID<input required value={agent.eid} onChange={e=>setAgent({...agent,eid:e.target.value})} placeholder="Employee ID"/></label>
           <label>Agent name<input required value={agent.agent_name} onChange={e=>setAgent({...agent,agent_name:e.target.value})} placeholder="Surname, First name"/></label>
@@ -122,6 +147,8 @@ export default function Manage({cloud}){
         <div className="manage-chip-list">{data.lobs.map(x=><span key={x.name}>{x.name}</span>)}</div>
       </section>
     </div>
-    <section className="panel manage-card manage-agent-list"><h2>Employee roster ({data.agents.length})</h2><div className="table-scroll"><table><thead><tr><th>Employee ID</th><th>Agent</th><th>Supervisor</th><th>LOB</th><th>Status</th><th>Action</th></tr></thead><tbody>{data.agents.map(a=><tr key={a.eid}><td>{a.eid}</td><td>{a.agent_name}</td><td>{a.supervisor}</td><td>{a.lob}</td><td>{a.active?'Active':'Archived'}</td><td><button type="button" className="link" onClick={()=>setAgent(a)}>Edit</button><button type="button" className="link" disabled={busy} onClick={()=>toggleAgent(a)}>{a.active?'Archive':'Restore'}</button></td></tr>)}</tbody></table></div></section>
+    <section className="panel manage-card manage-agent-list"><h2>Employee roster ({data.agents.filter(a=>a.active).length} active)</h2><p>Delete hides an agent from new audits. Existing audit records stay intact; use Undo to restore the agent.</p><div className="table-scroll"><table><thead><tr><th>Employee ID</th><th>Agent</th><th>Supervisor</th><th>LOB</th><th>Status</th><th>Action</th></tr></thead><tbody>{data.agents.map(a=><tr key={a.eid}><td>{a.eid}</td><td>{a.agent_name}</td><td>{a.supervisor}</td><td>{a.lob}</td><td>{a.active?'Active':'Deleted'}</td><td><button type="button" className="link" disabled={busy} onClick={()=>setEditing({...a,originalEid:a.eid})}>Edit</button>{a.active?<button type="button" className="link danger-link" disabled={busy} onClick={()=>setDeleting(a)}>Delete</button>:<button type="button" className="link" disabled={busy} onClick={()=>undoAgent(a)}>Undo</button>}</td></tr>)}</tbody></table></div></section>
+    {editing&&<div className="manage-modal-backdrop" onClick={()=>!busy&&setEditing(null)}><div className="manage-modal panel" role="dialog" aria-modal="true" aria-labelledby="edit-agent-title" onClick={e=>e.stopPropagation()}><h2 id="edit-agent-title">Edit {editing.agent_name}</h2><p>Save the individual changes to the shared roster.</p><form onSubmit={saveEdit} className="manage-form"><label>Employee ID<input required value={editing.eid} onChange={e=>setEditing({...editing,eid:e.target.value})}/></label><label>Agent name<input required value={editing.agent_name} onChange={e=>setEditing({...editing,agent_name:e.target.value})}/></label><label>Supervisor<select required value={editing.supervisor} onChange={e=>setEditing({...editing,supervisor:e.target.value})}>{data.supervisors.map(x=><option key={x.name}>{x.name}</option>)}</select></label><label>LOB<select required value={editing.lob} onChange={e=>setEditing({...editing,lob:e.target.value})}>{data.lobs.map(x=><option key={x.name}>{x.name}</option>)}</select></label><div className="manage-actions"><button className="primary" disabled={busy}>Save changes</button><button type="button" className="secondary" disabled={busy} onClick={()=>setEditing(null)}>Cancel</button></div></form></div></div>}
+    {deleting&&<div className="manage-modal-backdrop" onClick={()=>!busy&&setDeleting(null)}><div className="manage-modal panel" role="alertdialog" aria-modal="true" aria-labelledby="delete-agent-title" aria-describedby="delete-agent-description" onClick={e=>e.stopPropagation()}><h2 id="delete-agent-title">Delete {deleting.agent_name}?</h2><p id="delete-agent-description">This agent will disappear from the active roster. Old audits remain available, and you can undo the deletion at any time.</p><div className="manage-actions"><button type="button" className="danger-button" disabled={busy} onClick={deleteAgent}>Delete agent</button><button type="button" className="secondary" disabled={busy} onClick={()=>setDeleting(null)}>Cancel</button></div></div></div>}
   </section>;
 }
