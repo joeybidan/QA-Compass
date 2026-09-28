@@ -23,6 +23,11 @@ export default function CloudGate(){
   const [error,setError]=useState('');
   const [email,setEmail]=useState('');
   const [sent,setSent]=useState(false);
+  async function refreshRoster(){
+    const {data,error}=await supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name');
+    if(error)throw error;
+    setRoster((data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));
+  }
   useEffect(()=>{
     if(!supabase)return;
     let live=true;
@@ -35,12 +40,11 @@ export default function CloudGate(){
     let live=true;
     setLoading(true);setError('');
     (async()=>{
-      const {data:member,error:membershipError}=await supabase.from('qa_members').select('auditor_id,role,active,qa_auditors(id,name)').eq('auth_user_id',user.id).maybeSingle();
+      const {data:member,error:membershipError}=await supabase.from('qa_members').select('auditor_id,role,active,can_manage,qa_auditors(id,name)').eq('auth_user_id',user.id).maybeSingle();
       if(membershipError)throw membershipError;
-      if(!member?.active)throw new Error('Your account is not on the active QA Compass access list. Ask the project owner to link your Auth user ID.');
+      if(!member?.active)throw new Error('This email is not yet approved for QA Compass. Ask an auditor to add it on the Manage page.');
       const [agents,audits]=await Promise.all([
-        supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name'),
-        fetchAllAudits()
+        supabase.from('qa_agents').select('eid,agent_name,supervisor,lob').eq('active',true).order('agent_name'),fetchAllAudits()
       ]);
       if(agents.error)throw agents.error;
       if(live){setProfile(member);setRoster((agents.data||[]).map(a=>({eid:a.eid,agentName:a.agent_name,supervisor:a.supervisor,lob:a.lob})));setArchive(audits)}
@@ -49,7 +53,9 @@ export default function CloudGate(){
   },[user?.id]);
   async function sendLink(event){
     event.preventDefault();setError('');
-    const {error}=await supabase.auth.signInWithOtp({email:email.trim(),options:{shouldCreateUser:false,emailRedirectTo:window.location.origin}});
+    const address=email.trim().toLowerCase();
+    if(!address.endsWith('@cognizant.com')){setError('Use your Cognizant email address.');return}
+    const {error}=await supabase.auth.signInWithOtp({email:address,options:{shouldCreateUser:true}});
     if(error)setError(error.message);else setSent(true);
   }
   async function saveAudits(rows){
@@ -66,8 +72,8 @@ export default function CloudGate(){
   }
   if(!supabase)return <main className="access-panel"><h1>QA Compass</h1><p>Cloud connection is not configured for this build. Ask the site owner to set the QA Compass Supabase project URL and publishable key in Netlify.</p></main>;
   if(loading)return <div className="access-panel">Loading QA Compass access…</div>;
-  if(!user)return <main className="access-panel"><h1>QA Compass</h1><h2>Auditor sign-in</h2><p>Use the email account that the project owner invited to Supabase. Your auditor ID and name are assigned to that account.</p><form onSubmit={sendLink}><label>Work email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com"/></label><button className="primary">Send sign-in link</button></form>{sent&&<p>Check your email for a one-time sign-in link.</p>}{error&&<p className="warning">{error}</p>}</main>;
+  if(!user)return <main className="access-panel"><h1>QA Compass</h1><h2>Auditor sign-in</h2><p>Enter your approved Cognizant email. Open the sign-in link sent to that inbox once; this browser will remember you. No password or code to type.</p><form onSubmit={sendLink}><label>Cognizant email<input type="email" required value={email} onChange={e=>{setEmail(e.target.value);setSent(false)}} placeholder="name@cognizant.com"/></label><button className="primary">Send sign-in link</button></form>{sent&&<p>Check your Cognizant inbox for the sign-in link.</p>}{error&&<p className="warning">{error}</p>}</main>;
   if(!profile)return <main className="access-panel"><h1>QA Compass</h1><p>{error||'Your account is not linked to an auditor profile yet.'}</p><button className="secondary" onClick={()=>supabase.auth.signOut()}>Sign out</button></main>;
   const auditor=profile.qa_auditors;
-  return <App cloud={{user,profile,auditor:auditor&&{id:profile.auditor_id,name:auditor.name},roster,archive,saveAudits,removeAudit,signOut:()=>supabase.auth.signOut()}}/>;
+  return <App cloud={{user,profile,auditor:auditor&&{id:profile.auditor_id,name:auditor.name},roster,archive,saveAudits,removeAudit,refreshRoster,signOut:()=>supabase.auth.signOut()}}/>;
 }

@@ -1,10 +1,11 @@
 # QA Compass — Supabase setup
 
-Use the **QA Compass** project (`mzopnroctqeftvankwrv`), not DocuTool.
+The QA Compass project is `mzopnroctqeftvankwrv`.
 
-1. In Supabase, open **QA Compass → SQL Editor → New query**.
-2. Open [`01_create_tables.sql`](01_create_tables.sql) on GitHub, copy its whole contents into the query box, and click **Run** once. This creates protected tables for the global roster, auditor names, approved users, and saved audits. No employee rows are included in the public repository.
-3. Open the separate **QA_Compass_private_roster_seed.sql** file provided in this chat. Copy all of it into a *new* SQL Editor query and click **Run**. The result should show **44 agents** and **2 auditors**. Keep this private file out of GitHub.
-4. Stop there and tell me the result. Linking each auditor to a login email and turning on live sync are separate steps. Do not paste your secret key in SQL or in chat.
+1. `01_create_tables.sql` created the protected audit, membership, auditor, and employee tables.
+2. The separate private roster seed (not in GitHub) loaded 44 agents and two auditors.
+3. `02_manage_directory.sql` added the two approved Cognizant emails, the supervisor and LOB lists, and access rules for the Manage team page. These have already been run in this project. Do not run them again for normal additions.
 
-`qa001` and `qa002` are labels already present in your uploaded `auditors.json`. The two scripts above do not yet grant anyone access to read saved audits. That happens only after their login accounts are linked in the approved-users table.
+The first email link creates a Supabase Auth account, and a protected database trigger links it to the approved auditor ID. New QA emails entered on Manage team get the same treatment. Only the two initial auditors can manage the directory; new QAs get audit access without management permission.
+
+The site contains only the browser-safe Supabase publishable key. The secret key does not belong in GitHub, Netlify's Vite build, or the browser. See [the sign-in guide](../setup/README.md).

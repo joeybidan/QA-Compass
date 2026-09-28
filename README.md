@@ -1,12 +1,12 @@
 # QA Compass
 
-A Vite + React QA note parser with editable Microsoft List fields, CSV staging export, auditor identity, a global roster, and shared analytics when Supabase is configured.
+A Vite + React QA note parser with editable Microsoft List fields, CSV staging export, auditor identity, a global roster, shared analytics, and a team directory in Supabase.
 
 ## Use
 
-With Supabase configured, an invited auditor signs in by work email. The app derives the auditor ID and name from the protected membership table, loads the global employee roster, and lets the auditor paste and review notes. Saving complete audits sends their reviewed List fields to shared analytics. An invited `viewer` may see the analytics without editing audits. Notes stay in the browser until explicitly saved; only reviewed fields are synced.
+An approved auditor enters their Cognizant email and opens a sign-in link in that inbox on first use. The browser remembers the session. No password or typed OTP is needed. The app derives the auditor ID and name from the protected membership table, loads the global employee roster, and lets the auditor paste and review notes. Saving complete audits sends their reviewed List fields to shared analytics. The initial two auditors can open **Manage team** to add auditors, agents, supervisors, and LOBs without code changes. An invited `viewer` may see analytics without editing audits. Notes stay in the browser until explicitly saved; only reviewed fields are synced.
 
-See [supabase/README.md](supabase/README.md) for the SQL Editor setup and [setup/README.md](setup/README.md) for membership mapping and verification. The deployed site requires Supabase; if its project URL or publishable key is missing, it shows a configuration message instead of offering local mode. No roster or auditor directory JSON is committed to this public repository.
+See [supabase/README.md](supabase/README.md) for the database scripts and [setup/README.md](setup/README.md) for sign-in and verification. The deployed site requires Supabase. No roster or auditor directory JSON is committed to this public repository.
 
 ```bash
 npm ci

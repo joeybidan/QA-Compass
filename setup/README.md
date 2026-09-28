@@ -1,65 +1,32 @@
-# Connect QA Compass to Supabase
+# QA Compass sign-in and team setup
 
-This setup is for the **mzopnroctqeftvankwrv** project. The tables and private roster have been installed: 44 agents and the two auditors below. The site build includes the Supabase URL and browser-safe publishable key. Keep Netlify team protection on while connecting the two sign-ins.
+QA Compass uses the Supabase project `mzopnroctqeftvankwrv`. Its shared directory currently has 44 agents, two supervisors, five LOBs, and these approved auditors:
 
-## Who may see the shared analytics?
+| QA ID | Name | Cognizant email |
+| --- | --- | --- |
+| qa001 | Guitguiten, Estivenson | estivenson.guitguiten@cognizant.com |
+| qa002 | Bidan Jr., Joey | joeyjr.bidan@cognizant.com |
 
-Start with only the two people in `auditors.json`. Each gets an invited Supabase Auth account mapped to their own `qa001` or `qa002` ID. Both auditors can read the shared audit records, roster, and analytics, but can create, edit, or remove only their own audits. No one is granted access just by entering a name. Additional managers can be added later as `viewer` accounts: they can read shared analytics but cannot paste or save audits. Unknown sign-ins and anonymous visitors get no table rows.
+These IDs come from `auditors.json`; auditors never type them into the website. The roster is loaded from Supabase; nobody needs to upload `agents.json`.
 
-These are the *application* rules. Netlify team login is a separate outer gate; invite each intended viewer there too while the site remains private.
+## First sign-in
 
-## Existing setup
+1. Open [QA Compass](https://qacompass.netlify.app).
+2. Enter **your own** Cognizant email and click **Send sign-in link**.
+3. Open the link sent to that inbox. The site remembers the sign-in on that browser, so the email step is not repeated on each visit.
 
-The project has `qa_agents`, `qa_auditors`, `qa_members`, and `qa_audits` with access rules enabled. The two auditor records are:
+This is passwordless, with no code to type. A plain email text box by itself cannot prove who owns the address; the link verifies the inbox. The database grants access only to approved email addresses. The site's separate Netlify team sign-in may still appear before QA Compass; both auditors need access there.
 
-| Auditor ID | Name |
-| --- | --- |
-| `qa001` | Estivenson Guitguiten |
-| `qa002` | Joey Bidan Jr. |
+The Supabase **Authentication → URL Configuration → Site URL** is already `https://qacompass.netlify.app/` in the supplied screenshot. If an email link opens the wrong destination, add `https://qacompass.netlify.app/**` under **Redirect URLs**. If the site reports that new sign-ups are disabled, enable email sign-ups in **Authentication → Sign In / Providers → Email** for the first sign-in.
 
-These IDs come from the supplied `auditors.json`. They are assigned to sign-ins; auditors do not type them into the website. Do not run the table-creation or roster seed SQL again for login setup.
+## Add people and roster entries
 
-If the agent roster changes later, use the private roster seed SQL in the Supabase SQL Editor, or run the seed script with the updated two JSON files. The command-line alternative is:
+After signing in, choose **Manage team** in the top navigation. Both existing auditors have this permission.
 
-```bash
-read -rs -p 'Supabase secret key: ' QA_COMPASS_SECRET; echo
-SUPABASE_URL='https://mzopnroctqeftvankwrv.supabase.co' \
-SUPABASE_SECRET_KEY="$QA_COMPASS_SECRET" \
-node setup/seed-reference-data.mjs /private/path/agents.json /private/path/auditors.json
-unset QA_COMPASS_SECRET
-```
+- **Add an auditor:** Enter the next QA ID, their name, and their Cognizant email. The new auditor then uses the same email sign-in link. New auditors can audit but do not get the Manage team permission by default.
+- **Add a supervisor or LOB:** Enter its name in the matching section and click Add.
+- **Add an agent:** Enter employee ID and name, and choose the supervisor and LOB. Existing agents can be edited, archived, or restored from the roster table.
 
-The script uses the secret key only on your own computer. It upserts `qa_agents` and `qa_auditors`; it does not publish these JSON files to GitHub or Netlify.
+Changes are saved to Supabase immediately and appear for both auditors. Only accounts approved in the database can read the roster and shared analytics. Each auditor can edit or remove only audits they saved.
 
-On Windows PowerShell, use `$env:SUPABASE_URL='https://mzopnroctqeftvankwrv.supabase.co'`, then `$env:SUPABASE_SECRET_KEY=Read-Host 'Supabase secret key' -MaskInput`, run `node setup/seed-reference-data.mjs C:\private\agents.json C:\private\auditors.json`, and finish with `Remove-Item Env:SUPABASE_SECRET_KEY`.
-
-## Connect the two sign-ins
-
-1. Decide which email address belongs to Estivenson and which belongs to Joey. The names and IDs alone do not say which inbox each uses.
-2. In **Authentication → URL Configuration**, set the site URL to `https://qacompass.netlify.app` and add `https://qacompass.netlify.app/**` to allowed redirects.
-3. In **Authentication → Users**, invite each auditor at their own email address. Copy the user ID shown for each account.
-4. In **SQL Editor**, run this after replacing each placeholder with the matching user ID:
-
-```sql
-insert into public.qa_members (auth_user_id, auditor_id, role, active)
-values
-  ('REPLACE_WITH_QA001_AUTH_UUID', 'qa001', 'auditor', true),
-  ('REPLACE_WITH_QA002_AUTH_UUID', 'qa002', 'auditor', true)
-on conflict (auth_user_id) do update
-set auditor_id = excluded.auditor_id, role = excluded.role, active = excluded.active;
-```
-
-The supplied `auditors.json` contains IDs and names, **not** email addresses or user IDs. Match the two invited users deliberately. No user is currently linked in `qa_members`, so sign-in will not reveal audits until this step is complete. To add a manager who may only view analytics, invite them and insert `('THEIR_AUTH_UUID', null, 'viewer', true)` into `qa_members`. To remove access, set `active = false` and also revoke their Netlify team access.
-
-## Open the site
-
-The site at `https://qacompass.netlify.app` is deployed with Supabase configuration. Each auditor must also be allowed through the site's separate Netlify team access screen. Then each enters their invited email in the QA Compass sign-in form, opens the one-time email link, and sees their assigned name and the shared roster. The app saves reviewed audit fields to shared analytics. If the site configuration is ever missing, the app shows an error instead of opening local mode. The secret key is never in the site build.
-
-## Verify before regular use
-
-1. Sign in as `qa001`: confirm the assigned name/ID and roster count, then save one non-sensitive test audit.
-2. Sign in as `qa002`: confirm that test appears in analytics, and that this auditor cannot remove it.
-3. Test an unlisted account: it should see no roster or analytics and the app should say it is not on the access list.
-4. Query `qa_audits` in the SQL Editor and remove the test audit as the project owner when finished. Verify no real call data was used for testing.
-
-The old browser-only archive is not uploaded automatically. After sign-in, the app offers an explicit one-time import of its previously reviewed local records. Direct Microsoft List submission remains a separate integration.
+The SQL scripts in `supabase/` document the installed tables and policies. Do not run them again for routine additions. Direct Microsoft List submission is a separate integration; CSV remains the staging export.
