@@ -1,6 +1,6 @@
 # Connect QA Compass to Supabase
 
-This setup is for the **mzopnroctqeftvankwrv** project. The connected Supabase account could not access that project when the app was built, so these steps are prepared but have **not** been run against it. Keep Netlify team protection on while configuring it.
+This setup is for the **mzopnroctqeftvankwrv** project. The tables and private roster have been installed: 44 agents and the two auditors below. The Netlify build has the Supabase URL and publishable key. Keep Netlify team protection on while connecting the two sign-ins.
 
 ## Who may see the shared analytics?
 
@@ -8,17 +8,18 @@ Start with only the two people in `auditors.json`. Each gets an invited Supabase
 
 These are the *application* rules. Netlify team login is a separate outer gate; invite each intended viewer there too while the site remains private.
 
-## 1. Give the connected account project access
+## Existing setup
 
-In the Supabase organization that owns the project, add the account used by the Supabase connector as an authorized team member or reconnect the connector with the project-owning account. Verify `mzopnroctqeftvankwrv` appears in its project list. Do not substitute another project merely because it appears in the connector.
+The project has `qa_agents`, `qa_auditors`, `qa_members`, and `qa_audits` with access rules enabled. The two auditor records are:
 
-## 2. Create the protected tables
+| Auditor ID | Name |
+| --- | --- |
+| `qa001` | Estivenson Guitguiten |
+| `qa002` | Joey Bidan Jr. |
 
-Open the project's **SQL Editor** and run [`schema.sql`](schema.sql) once. It enables row level security on all four tables and grants authenticated users only the operations their policies allow. Review the SQL with the project owner before running it. If your project's Data API does not expose new `public` tables automatically, the explicit grants at the bottom provide table privileges, but verify the Data API exposure settings too.
+These IDs come from the supplied `auditors.json`. They are assigned to sign-ins; auditors do not type them into the website. Do not run the table-creation or roster seed SQL again for login setup.
 
-## 3. Seed the two supplied JSON files
-
-On your own machine, from this repository directory, run the seed script with the two uploaded JSON files. Use a temporary shell environment for the **secret key**. Do not place the key in `.env`, `VITE_` variables, GitHub, or chat.
+If the agent roster changes later, use the private roster seed SQL in the Supabase SQL Editor, or run the seed script with the updated two JSON files. The command-line alternative is:
 
 ```bash
 read -rs -p 'Supabase secret key: ' QA_COMPASS_SECRET; echo
@@ -28,13 +29,16 @@ node setup/seed-reference-data.mjs /private/path/agents.json /private/path/audit
 unset QA_COMPASS_SECRET
 ```
 
-Get the actual project URL and secret key from the project's **Settings → API Keys** page. The script uses the secret key only on your own computer. It upserts `qa_agents` and `qa_auditors`; rerun it when the roster changes. It does not publish these JSON files to GitHub or Netlify.
+The script uses the secret key only on your own computer. It upserts `qa_agents` and `qa_auditors`; it does not publish these JSON files to GitHub or Netlify.
 
 On Windows PowerShell, use `$env:SUPABASE_URL='https://mzopnroctqeftvankwrv.supabase.co'`, then `$env:SUPABASE_SECRET_KEY=Read-Host 'Supabase secret key' -MaskInput`, run `node setup/seed-reference-data.mjs C:\private\agents.json C:\private\auditors.json`, and finish with `Remove-Item Env:SUPABASE_SECRET_KEY`.
 
-## 4. Bind real logins to auditor IDs
+## Connect the two sign-ins
 
-In **Authentication → Users**, invite each auditor at their own work email address. Copy each Auth user UUID. Run this in the SQL Editor with the actual UUIDs (these are examples, not real IDs):
+1. Decide which email address belongs to Estivenson and which belongs to Joey. The names and IDs alone do not say which inbox each uses.
+2. In **Authentication → URL Configuration**, set the site URL to `https://qacompass.netlify.app` and add `https://qacompass.netlify.app/**` to allowed redirects.
+3. In **Authentication → Users**, invite each auditor at their own email address. Copy the user ID shown for each account.
+4. In **SQL Editor**, run this after replacing each placeholder with the matching user ID:
 
 ```sql
 insert into public.qa_members (auth_user_id, auditor_id, role, active)
@@ -45,20 +49,13 @@ on conflict (auth_user_id) do update
 set auditor_id = excluded.auditor_id, role = excluded.role, active = excluded.active;
 ```
 
-The supplied `auditors.json` contains IDs and names, **not** email addresses or Auth UUIDs. Match the two invited users deliberately. To add a manager who may only view analytics, invite them and insert `('THEIR_AUTH_UUID', null, 'viewer', true)` into `qa_members`. To remove access, set `active = false` and also revoke their Netlify team access. A user already holding a valid token may retain it until expiry; use the Auth dashboard to end sessions when urgent.
+The supplied `auditors.json` contains IDs and names, **not** email addresses or user IDs. Match the two invited users deliberately. No user is currently linked in `qa_members`, so sign-in will not reveal audits until this step is complete. To add a manager who may only view analytics, invite them and insert `('THEIR_AUTH_UUID', null, 'viewer', true)` into `qa_members`. To remove access, set `active = false` and also revoke their Netlify team access.
 
-## 5. Configure login and site build
+## Open the site
 
-In **Authentication → URL Configuration**, set the site URL to `https://qacompass.netlify.app` and allow that redirect. Keep public signups disabled if the project supports invitation-only registration. In Netlify project environment variables, set:
+The site at `https://qacompass.netlify.app` is deployed with Supabase configuration. Each auditor must also be allowed through the site's separate Netlify team access screen. Then each enters their invited email in the QA Compass sign-in form, opens the one-time email link, and sees their assigned name and the shared roster. The app saves reviewed audit fields to shared analytics. If the site configuration is ever missing, the app shows an error instead of opening local mode. The secret key is never in the site build.
 
-```text
-VITE_SUPABASE_URL=https://mzopnroctqeftvankwrv.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   # from this project
-```
-
-The publishable key is designed for browser use; never use a secret or service-role key here. Redeploy the GitHub source. Once configured, the app prompts for a magic link, identifies the auditor from `qa_members`, loads the roster automatically, and saves reviewed audit fields to shared analytics. Unconfigured builds retain the local testing mode.
-
-## 6. Verify before regular use
+## Verify before regular use
 
 1. Sign in as `qa001`: confirm the assigned name/ID and roster count, then save one non-sensitive test audit.
 2. Sign in as `qa002`: confirm that test appears in analytics, and that this auditor cannot remove it.
