@@ -6,7 +6,7 @@ A Vite + React QA note parser with editable Microsoft List fields, CSV staging e
 
 With Supabase configured, an invited auditor signs in by work email. The app derives the auditor ID and name from the protected membership table, loads the global employee roster, and lets the auditor paste and review notes. Saving complete audits sends their reviewed List fields to shared analytics. An invited `viewer` may see the analytics without editing audits. Notes stay in the browser until explicitly saved; only reviewed fields are synced.
 
-The Supabase project supplied for this app was not accessible to the connected account during implementation. See [setup/README.md](setup/README.md) for the exact schema, roster/auditor seeding, membership mapping, Netlify variables, and verification steps. Until configured, the site remains in local testing mode: the auditor enters their ID and name, uploads the roster for that tab, and may save reviewed records to that browser only. Local identity is self-reported. No roster or auditor directory JSON is committed to this public repository.
+See [supabase/README.md](supabase/README.md) for the SQL Editor setup and [setup/README.md](setup/README.md) for membership mapping and verification. The deployed site requires Supabase; if its project URL or publishable key is missing, it shows a configuration message instead of offering local mode. No roster or auditor directory JSON is committed to this public repository.
 
 ```bash
 npm ci

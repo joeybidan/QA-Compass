@@ -64,7 +64,7 @@ export default function CloudGate(){
     if(error)throw error;
     setArchive(current=>current.filter(x=>x._id!==row._id));
   }
-  if(!supabase)return <App/>;
+  if(!supabase)return <main className="access-panel"><h1>QA Compass</h1><p>Cloud connection is not configured for this build. Ask the site owner to set the QA Compass Supabase project URL and publishable key in Netlify.</p></main>;
   if(loading)return <div className="access-panel">Loading QA Compass access…</div>;
   if(!user)return <main className="access-panel"><h1>QA Compass</h1><h2>Auditor sign-in</h2><p>Use the email account that the project owner invited to Supabase. Your auditor ID and name are assigned to that account.</p><form onSubmit={sendLink}><label>Work email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com"/></label><button className="primary">Send sign-in link</button></form>{sent&&<p>Check your email for a one-time sign-in link.</p>}{error&&<p className="warning">{error}</p>}</main>;
   if(!profile)return <main className="access-panel"><h1>QA Compass</h1><p>{error||'Your account is not linked to an auditor profile yet.'}</p><button className="secondary" onClick={()=>supabase.auth.signOut()}>Sign out</button></main>;
