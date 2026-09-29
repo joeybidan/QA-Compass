@@ -1,16 +1,12 @@
 import React,{useState} from 'react';
 import fields from './data/fields.json' with {type:'json'};
 import {parseNotes,missingFields,csvFor} from './parser.js';
+import {downloadCsv} from './downloadCsv.js';
 import FieldEditor from './components/FieldEditor.jsx';
 import Analytics from './Analytics.jsx';
 import Manage from './Manage.jsx';
 import './styles.css';
 
-function download(content, filename, type) {
-  const url=URL.createObjectURL(new Blob([content],{type}));
-  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
-}
 const ready = record => missingFields(record,fields).length===0 && (record.notes.length===0 || record.reviewed);
 const archiveKey='qa-compass-reviewed-v1';
 function readArchive(){try{const data=JSON.parse(localStorage.getItem(archiveKey)||'[]');return Array.isArray(data)?data:[]}catch{return []}}
@@ -47,7 +43,7 @@ export default function App({cloud=null}){
   function exportCsv(completeOnly){
     const items=completeOnly?records.filter(ready):records;
     if(!items.length){setMessage('There are no complete records to export.');return;}
-    download(csvFor(items,fields),`quality-compass-${completeOnly?'complete':'draft'}-${new Date().toISOString().slice(0,10)}.csv`,'text/csv;charset=utf-8');
+    downloadCsv(csvFor(items,fields),`quality-compass-${completeOnly?'complete':'draft'}-${new Date().toISOString().slice(0,10)}.csv`);
     setMessage(`Downloaded ${items.length} ${completeOnly?'complete':'draft'} record${items.length===1?'':'s'}. This CSV is a staging file; it has not been submitted to Microsoft Lists.`);
   }
   async function loadRoster(file){

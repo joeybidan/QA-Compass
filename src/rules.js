@@ -12,7 +12,7 @@ const qualityRules=[
   [/excessive hold|hold (?:policy|time|too long)/i,'Hold/Transfer policy','Hold policy'],
   [/did not ask.{0,60}(?:other|further|additional) questions|did not offer (?:additional|further) assistance/i,'Phone Etiquette','Offering additional assistance'],
   [/no closing spiel|did not (?:deliver|use|give).{0,35}closing|not.{0,30}closure|missed (?:the )?closing spiel/i,'Phone Etiquette','Complete closing spiel'],
-  [/delayed greeting|late greeting|opened the call at \d+ seconds|missing (?:the )?opening spiel|did not (?:deliver|use).{0,30}opening spiel/i,'Phone Etiquette','Complete and correct Call Opening spiel'],
+  [/\bopening spiel\b|delayed greeting|late greeting|opened the call at \d+ seconds|opening (?:was )?(?:delivered|given|said).{0,25}(?:late|after|beyond)/i,'Phone Etiquette','Preparedness to take the call'],
   [/lack of empathy|did not.{0,25}empathy/i,'Professionalism / Soft Skills','Professional and personable'],
   [/dead air/i,'Professionalism / Soft Skills','Dead air'],
   [/verification (?:process|step)|did not verify/i,'Verification','Verification process followed'],
@@ -90,9 +90,13 @@ export function applyAuditRules(record,markdowns) {
         add(record,'Resolution / Accountability','Completeness');
         continue;
       }
+      const surveyMiss=/\bsurvey\s+(?:spiel|script|invitation)\b|(?:offer|ask|mention|deliver|say|give).{0,30}\bsurvey\b/i.test(md)
+        && /\b(?:did not|didn't|not|no|missed|missing|omitted|failed|forgot|skipped|never|wasn't)\b/i.test(md);
+      const caregiverSurvey=surveyMiss&&f['Scorecard Type']==='Caregiver Support Call 10.2024';
+      if(caregiverSurvey)add(record,'Phone Etiquette','Complete closing spiel');
       const matched=qualityRules.filter(([pattern])=>pattern.test(md));
       for(const [,main,sub] of matched) add(record,main,sub);
-      if(!matched.length) record.notes.push(`No confirmed parameter mapping for markdown: “${md}”`);
+      if(!matched.length&&!caregiverSurvey) record.notes.push(`No confirmed parameter mapping for markdown: “${md}”`);
     }
     if(!markdowns.length&&f['Quality Score in Percentage']!==''&&numeric<100){
       add(record,'Professionalism / Soft Skills','Professional and personable');

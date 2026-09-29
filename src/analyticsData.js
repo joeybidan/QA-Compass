@@ -1,5 +1,9 @@
+import {csvFor} from './parser.js';
+
 const field=(row,key)=>row[key]||'';
 const score=row=>Number(field(row,'Quality Score in Percentage'));
+export const monthOf=row=>{const match=String(field(row,'Call Date')).match(/^(\d{1,2})\/\d{1,2}\/(\d{4})$/);return match?`${match[2]}-${match[1].padStart(2,'0')}`:''};
+export const csvForSavedMonth=(archive,month,fields)=>csvFor(archive.filter(row=>monthOf(row)===month).map(row=>({fields:row})),fields);
 export const markdownLabels=rows=>[...new Set(rows.flatMap(row=>{
   const value=field(row,'Quality Sub-parameter');
   return Array.isArray(value)?value.filter(x=>x&&x!=='N/A'):value&&value!=='N/A'?[value]:[];

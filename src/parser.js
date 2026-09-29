@@ -2,8 +2,12 @@ import {applyAuditRules} from './rules.js';
 
 const clean = s => String(s ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/clx_/g, ' ').replace(/\bclx\b/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 const tokens = s => clean(s).split(/\s+/).filter(Boolean);
+const knownAliases={
+  'grace lorraine':'alit lorraine grace',
+  'nemenzo louis':'nemenzo louie'
+};
 export function matchAgent(raw, agents=[]) {
-  const words = new Set(tokens(raw));
+  const words = new Set(tokens(knownAliases[clean(raw)]||raw));
   if (!words.size) return null;
   const scored = agents.map(agent => {
     const roster = tokens(agent.agentName);
@@ -19,8 +23,8 @@ const datePattern=/^\d{1,2}\/\d{1,2}\/\d{4}$/;
 const timePattern=/^\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)$/i;
 const durationPattern=/^(\d{1,3}):(\d{2})(?::(\d{2}))?$/;
 const eventPattern=/^1\d{10}$/;
-const scorePattern=/^(?:QA\s*Score\s*:\s*)?(100(?:\.0+)?|\d{1,2}(?:\.\d+)?)\s*%?$/i;
-const vagueScorePattern=/^(?:QA\s*Score\s*:\s*)?(\d{1,2})s\s*%?$/i;
+const scorePattern=/^(?:QA(?:\s*Score)?\s*:\s*)?(100(?:\.0+)?|\d{1,2}(?:\.\d+)?)\s*%?$/i;
+const vagueScorePattern=/^(?:QA(?:\s*Score)?\s*:\s*)?(\d{1,2})s\s*%?$/i;
 function validDate(value) {
   if(!datePattern.test(value)) return false;
   const [m,d,y]=value.split('/').map(Number);
