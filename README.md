@@ -15,7 +15,7 @@ npm test
 npm run build
 ```
 
-The two supplied JSON files are consumed by `setup/seed-reference-data.mjs` using a local secret key, never by the public Vite build. The directory contains names and IDs, not login emails; each auditor must be linked to a separately invited Supabase Auth account.
+The original JSON files were used by `setup/seed-reference-data.mjs` to seed Supabase, never by the public Vite build. The shared roster is now managed in the app; approved auditor emails are stored in Supabase.
 
 ## Rules and limits
 
@@ -23,6 +23,6 @@ The two supplied JSON files are consumed by `setup/seed-reference-data.mjs` usin
 - Missing 11-digit Event IDs stay blank and do not block local CSV export. The Microsoft Form may still require this field.
 - Below-100 scores with no `Markdown:` line default to `Professionalism / Soft Skills` and `Professional and personable`, with a review flag.
 - Other caller, LOB, scorecard, sentiment, severe issue, repeat caller, supervisor action, kudos, and markdown mappings follow the supplied rules. Unmapped markdowns need manual selection.
-- Analytics filters month/year, LOB, supervisor, and main/sub-parameter, with agent and remark drilldowns and top average scorers.
+- Analytics filters month/year, LOB, supervisor, and main/sub-parameter. It compares monthly averages by LOB and supervisor, counts each markdown across months, and shows an alphabetical 12-month agent table with audit coverage (8 per month), possible duplicate Event IDs, and per-auditor audit details. Year buttons switch the charts and table together.
 
 CSV remains a staging file. Direct Microsoft List submission needs an authorized Microsoft 365 integration and person-field identity resolution. Avoid sensitive real call data in tests. Netlify's team access protection should remain enabled for this internal app.

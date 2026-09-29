@@ -1,14 +1,16 @@
 import React,{useMemo,useState} from 'react';
-import {csvForSavedMonth,markdownLabels,monthOf,rankAgents} from './analyticsData.js';
+import {csvForSavedMonth,markdownLabels,monthOf,monthlyComparison,normalizeLob,rankAgents} from './analyticsData.js';
 import fields from './data/fields.json' with {type:'json'};
 import {downloadCsv} from './downloadCsv.js';
+import LineComparison from './LineComparison.jsx';
+import AgentYearTable,{YearNav} from './AgentYearTable.jsx';
 
 const value=(row,key)=>row[key]||'';
 const monthName=key=>new Date(`${key}-01T00:00:00`).toLocaleDateString(undefined,{month:'short',year:'numeric'});
 const unique=values=>[...new Set(values.filter(Boolean))].sort();
 const countBy=(rows,key)=>{const counts=new Map();for(const row of rows)for(const item of (Array.isArray(row[key])?row[key]:[row[key]]))if(item&&item!=='N/A')counts.set(item,(counts.get(item)||0)+1);return [...counts].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));};
 
-export default function Analytics({archive,onRemove,onClear,cloud=false,currentUserId}){
+export default function Analytics({archive,roster=[],onRemove,onClear,cloud=false,currentUserId}){
   const months=useMemo(()=>unique(archive.map(monthOf)).reverse(),[archive]);
   const years=unique(months.map(x=>x.slice(0,4))).reverse();
   const [period,setPeriod]=useState('latest');
@@ -20,6 +22,9 @@ export default function Analytics({archive,onRemove,onClear,cloud=false,currentU
   const [exportOpen,setExportOpen]=useState(false);
   const [exportMonth,setExportMonth]=useState('');
   const [metric,setMetric]=useState('Quality Sub-parameter');
+  const [reportYear,setReportYear]=useState('');
+  const reportYears=years.length?[...years].reverse():[String(new Date().getFullYear())];
+  const activeYear=reportYear||reportYears.at(-1);
   const periodKey=period==='latest'?months[0]:period;
   const inPeriod=archive.filter(r=>periodKey==='all'||periodKey?.length===4?periodKey==='all'||monthOf(r).startsWith(periodKey):monthOf(r)===periodKey);
   const lobs=unique(inPeriod.map(r=>value(r,'LOB')));
@@ -45,6 +50,9 @@ export default function Analytics({archive,onRemove,onClear,cloud=false,currentU
   }
   const trendMonths=months.filter(m=>periodKey==='all'||(periodKey?.length===4?m.startsWith(periodKey):true)).sort();
   const trend=trendMonths.map(m=>({month:m,count:archive.filter(r=>monthOf(r)===m&&(lob==='all'||value(r,'LOB')===lob)&&(supervisor==='all'||value(r,'Supervisor')===supervisor)&&Number(value(r,'Quality Score in Percentage'))<100).length}));
+  const lobSeries=monthlyComparison(archive,activeYear,'LOB',unique(roster.map(agent=>normalizeLob(agent.lob))));
+  const supervisorSeries=monthlyComparison(archive,activeYear,'Supervisor',unique(roster.map(agent=>agent.supervisor)));
+  const markdownSeries=monthlyComparison(archive,activeYear,'Quality Sub-parameter');
   const top=ranking.slice(0,6);
   const total=top.reduce((n,[,count])=>n+count,0);
   let offset=0;const pie=top.map(([,count],i)=>{const from=offset;offset+=count/Math.max(total,1)*100;return `var(--chart-${i}) ${from}% ${offset}%`;}).join(', ');
@@ -56,13 +64,18 @@ export default function Analytics({archive,onRemove,onClear,cloud=false,currentU
       {showBelow&&<section className="panel drill-panel"><div className="section-head"><div><h2>Agents with scores below 100</h2><p>Ranked lowest to highest by their average below-100 score. Select an agent to view their markdowns and remarks.</p></div><button type="button" className="link" onClick={()=>{setShowBelow(false);setSelectedAgent(null)}}>Close</button></div><div className="rank-list">{belowRank.map((x,i)=><button type="button" key={x.id} className={selectedAgent?.kind==='below'&&selectedAgent.id===x.id?'picked':''} onClick={()=>toggleAgent('below',x.id)}><b>{i+1}</b><span>{x.name}<small>{x.lob} · {x.count} below-100 audit{x.count===1?'':'s'}</small><small className="markdown-preview">{markdownLabels(x.audits).join(', ')||'No markdown selected'}</small></span><strong>{(x.sum/x.count).toFixed(1)}%</strong></button>)}{!belowRank.length&&<p>No agents scored below 100 for these filters.</p>}</div></section>}
       <div className="chart-grid"><section className="panel chart-panel"><h2>Top markdowns</h2><p>Each missed parameter is counted once per audit. Select a bar to see agents and remarks.</p><div className="bar-list">{ranking.slice(0,12).map(([name,count])=><button type="button" key={name} className={'bar-row '+(selectedMarkdown===name?'picked':'')} onClick={()=>setSelectedMarkdown(selectedMarkdown===name?'':name)}><span title={name}>{name}</span><div className="track"><i style={{width:`${count/max*100}%`}}/></div><strong>{count}</strong></button>)}{!ranking.length&&<p>No markdowns for these filters.</p>}</div></section>
       <section className="panel chart-panel"><h2>Markdown share</h2><p>Six most frequent categories in the selected period.</p>{total?<><div className="donut" style={{background:`conic-gradient(${pie})`}}><span>{total}<small>occurrences</small></span></div><div className="legend">{top.map(([name,count],i)=><div key={name}><i style={{background:`var(--chart-${i})`}}/>{name}<strong>{count}</strong></div>)}</div></>:<div className="chart-empty">No markdowns yet.</div>}</section>
+      <div className="comparison-heading"><div><h2>Monthly comparisons</h2><p>Based on all saved audits in the selected year. The LOB and supervisor lines show average QA score; markdown lines show missed sub-parameter counts.</p></div><YearNav year={activeYear} years={reportYears} onChange={setReportYear}/></div>
       <section className="panel chart-panel"><h2>Monthly trend</h2><p>Audits below 100 by call month.</p><div className="trend">{trend.map(x=><div className="trend-col" key={x.month}><strong>{x.count}</strong><div><i style={{height:`${Math.max(x.count?6:0,x.count/Math.max(...trend.map(t=>t.count),1)*100)}%`}}/></div><span>{monthName(x.month)}</span></div>)}</div></section>
+      <LineComparison title="LOB comparison" subtitle="Monthly average QA score for every LOB with saved audits" series={lobSeries} unit="%" year={activeYear}/>
+      <LineComparison title="Supervisor comparison" subtitle="Monthly average QA score by supervisor" series={supervisorSeries} unit="%" year={activeYear}/>
+      <LineComparison title="Markdown comparison" subtitle="Monthly count of every missed Quality Sub-parameter" series={markdownSeries} unit="count" year={activeYear}/>
       <section className="panel chart-panel"><h2>Top QA scorers</h2><p>Highest average score per agent for the selected period and LOB. Audit count breaks ties.</p><div className="rank-list">{leaderboard.slice(0,10).map((x,i)=><div key={x.id}><b>{i+1}</b><span>{x.name}<small>{x.lob} · {x.count} audit{x.count===1?'':'s'}</small></span><strong>{(x.sum/x.count).toFixed(1)}%</strong></div>)}{!leaderboard.length&&<p>No scores for these filters.</p>}</div></section>
       <section className="panel chart-panel"><h2>Bottom QA scorers</h2><p>Lowest average score per agent. Select an agent to see every markdown and auditor remark for their audits.</p><div className="rank-list">{bottom.map((x,i)=><button type="button" key={x.id} className={selectedAgent?.kind==='bottom'&&selectedAgent.id===x.id?'picked':''} onClick={()=>toggleAgent('bottom',x.id)}><b>{i+1}</b><span>{x.name}<small>{x.lob} · {x.count} audit{x.count===1?'':'s'}</small><small className="markdown-preview">{markdownLabels(x.audits).join(', ')||'No markdown selected'}</small></span><strong>{(x.sum/x.count).toFixed(1)}%</strong></button>)}{!bottom.length&&<p>No scores for these filters.</p>}</div></section></div>
       {inspected&&<section className="panel drill-panel"><div className="section-head"><div><h2>{inspected.name} · all markdowns</h2><p>{inspected.count} audit{inspected.count===1?'':'s'} in this ranking · {inspected.lob}</p></div><button type="button" className="link" onClick={()=>setSelectedAgent(null)}>Close details</button></div><div className="drill-list">{inspected.audits.filter(r=>Number(value(r,'Quality Score in Percentage'))<100).map((r,i)=><article key={r._id||`${value(r,'Call Date')}-${i}`}><header><strong>{value(r,'Quality Score in Percentage')}% · {value(r,'Call Date')}</strong><span>{value(r,'Supervisor')}{r._auditorName?` · Auditor: ${r._auditorName}`:''}</span></header><p className="markdown-tags"><strong>Markdowns:</strong> {markdownLabels([r]).join(', ')||'None selected'}</p><p><strong>Auditor remarks:</strong> {value(r,'Quality Auditor Remarks')||'No remarks'}</p></article>)}{!inspected.audits.some(r=>Number(value(r,'Quality Score in Percentage'))<100)&&<p>No below-100 audits or markdowns for this agent in the selected period.</p>}</div></section>}
       {selectedMarkdown&&<section className="panel drill-panel"><div className="section-head"><div><h2>{selectedMarkdown}</h2><p>{drill.length} audit{drill.length===1?'':'s'} with this markdown</p></div><button className="link" onClick={()=>setSelectedMarkdown('')}>Close details</button></div><div className="drill-list">{drill.map((r,i)=><article key={`${value(r,'Employee ID')}-${value(r,'Call Date')}-${i}`}><header><strong>{value(r,'Employee Name')}</strong><span>{value(r,'Call Date')} · {value(r,'LOB')} · {value(r,'Supervisor')} · {value(r,'Quality Score in Percentage')}%{r._auditorName?` · Auditor: ${r._auditorName}`:''}</span></header><p>{value(r,'Quality Auditor Remarks')}</p>{(!cloud||r._owner===currentUserId)&&<button className="link" onClick={()=>onRemove(r)}>Remove saved audit</button>}</article>)}</div></section>}
       {onClear&&<div className="archive-actions"><button className="link" onClick={onClear}>Clear saved analytics records</button><span>Clearing removes them from this browser.</span></div>}
     </>}
+    <AgentYearTable archive={archive} roster={roster} year={activeYear} years={reportYears} onYearChange={setReportYear}/>
     {exportOpen&&<div className="manage-modal-backdrop" onClick={()=>setExportOpen(false)}><div className="manage-modal panel" role="dialog" aria-modal="true" aria-labelledby="export-month-title" onClick={event=>event.stopPropagation()}><h2 id="export-month-title">Which QA month do you want to download?</h2><p>Select the call month. This CSV contains every saved audit from both auditors in that month, using the Microsoft List field headers. Excel can open the file.</p><label className="export-month-label">Call month<select autoFocus value={exportMonth} onChange={event=>setExportMonth(event.target.value)}>{months.map(month=><option value={month} key={month}>{monthName(month)}</option>)}</select></label><p>{exportRows.length} saved audit{exportRows.length===1?'':'s'} will be included.</p><div className="manage-actions"><button type="button" className="primary" disabled={!exportRows.length} onClick={exportSavedMonth}>Download CSV</button><button type="button" className="secondary" onClick={()=>setExportOpen(false)}>Cancel</button></div></div></div>}
   </section>;
 }
